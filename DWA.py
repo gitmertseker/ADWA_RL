@@ -2,6 +2,8 @@ import math
 import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
+import cv2
+from skimage.morphology import erosion,disk
 
 
 
@@ -23,6 +25,25 @@ class Obstacle:
 
 
 class Costmap:
+
+
+    def readImageMap(self,path,dimensions=(1000,500)):
+        img = cv2.imread(path)
+        # img = cv2.resize(img,dimensions)
+        # img = cv2.transpose(img)
+        img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        # img_gray_mod = deepcopy(img_gray)
+        img_gray_mod_2 = deepcopy(img_gray)
+
+        fp = disk(5) #5 olacak!!
+        # img_gray_mod_2 = erosion(img_gray_mod,fp) #obstacle size enlarged
+
+        np.putmask(img_gray_mod_2, img_gray_mod_2<205, 0) #occupied
+        np.putmask(img_gray_mod_2, img_gray_mod_2>205, 1) #free
+        np.putmask(img_gray_mod_2, img_gray_mod_2==205, 1) #unknown
+        # self.image = deepcopy(img_gray_mod_2)
+
+        return img_gray_mod_2
 
     def read_costmap(self,filename):
 
@@ -326,7 +347,7 @@ class Robot:
                 sum = (sum + self.distance(x1,x2,y1,y2))
 
             cond_v =  v < np.sqrt(2*sum*self.max_dec_v)
-            dist_w = path.theta[idx]-state.theta
+            dist_w = abs(path.theta[idx]-state.theta)
             cond_w =  w < np.sqrt(2*dist_w*self.max_dec_w)
 
             if cond_v and cond_w:
@@ -367,12 +388,12 @@ class Robot:
 
         obs_x = []
         obs_y = []
-
+        orig_pix = 30
         for obs in obstacles:
             # (20,20) initial robot position, resolution = 5 cm/pixel
 
-            obs_x_temp = state.x + 0.05*(obs.x-20)
-            obs_y_temp = state.y + 0.05*(obs.y-20)
+            obs_x_temp = state.x + 0.05*(obs.x-orig_pix)
+            obs_y_temp = state.y + 0.05*(obs.y-orig_pix)
             obs_x.append(obs_x_temp)
             obs_y.append(obs_y_temp)
 

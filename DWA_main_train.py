@@ -23,15 +23,15 @@ dt =  0.1  # time step
 n =   30      # how many time intervals
 
 
-filename = "local_costmap_copy.txt"
 
 
-
-def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
-    heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,goal_region = 0.02):
+def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
+    heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,goal_region,path):
     
-    resolution = 0.05
-    orig_px=30
+    # resolution = 0.05
+    resolution = 0.01
+    # orig_px=30
+    orig_px=20
     costmap = Costmap()
     initial_states_list = []
     costmap_list = []
@@ -41,46 +41,77 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     delta_obstacle = 0.3
     delta_velocity = 0.3
 
-    for i in range(5):
-        cm=np.zeros((orig_px*2,orig_px*2))
-        rand_cm = np.random.randint(low=0, high=101, size=(40,40)) #Generation of random costmap
-        cm[orig_px-20:orig_px+20,orig_px-20:orig_px+20]=rand_cm
-        cm_rev = costmap.cm_rev(cm)
-        cm_rev2 = costmap.cm_norm(cm_rev)
-        obstacles = costmap.find_obstacles(cm_rev2)
+    img = costmap.readImageMap(path)
 
+    for i in range(5):
+        # cm=np.zeros((orig_px*2,orig_px*2))
+        # rand_cm = np.random.randint(low=0, high=101, size=(40,40)) #Generation of random costmap
+        # cm[orig_px-20:orig_px+20,orig_px-20:orig_px+20]=rand_cm
+        # cm_rev = costmap.cm_rev(cm)
+        # cm_rev2 = costmap.cm_norm(cm_rev)
+        # obstacles = costmap.find_obstacles(cm_rev2)
+
+        cm=np.zeros((orig_px*2,orig_px*2))
         # Generation of initial states
         while True:
             
-            init_x = random.uniform(-10, 10)
-            init_y = random.uniform(-10, 10)
+            low_x = (0 + orig_px) * resolution
+            low_y = (0 + orig_px) * resolution
+            high_x = (img.shape[0] - orig_px) * resolution
+            high_y = (img.shape[1] - orig_px) * resolution
+            init_x = random.uniform(low_x, high_x)
+            init_y = random.uniform(low_y, high_y)
             goal_x = random.uniform(init_x - orig_px*resolution, init_x + orig_px*resolution)
             goal_y = random.uniform(init_y - orig_px*resolution, init_y + orig_px*resolution)
-            low_lim_x = init_x - orig_px*resolution
-            low_lim_y = init_y - orig_px*resolution 
-            if ((goal_x - low_lim_x) / resolution) % 1 < 0.5:
-                goal_x_pixel = math.floor((goal_x - low_lim_x) / resolution)
+            # low_lim_x = init_x - orig_px*resolution
+            # low_lim_y = init_y - orig_px*resolution 
+            # if ((goal_x - low_lim_x) / resolution) % 1 < 0.5:
+            #     goal_x_pixel = math.floor((goal_x - low_lim_x) / resolution)
+            # else:
+            #     goal_x_pixel = math.ceil((goal_x - low_lim_x) / resolution)
+            # if ((goal_y - low_lim_y) / resolution) % 1 < 0.5:
+            #     goal_y_pixel = math.floor((goal_y - low_lim_y) / resolution)
+            # else:
+            #     goal_y_pixel = math.ceil((goal_y - low_lim_y) / resolution)
+            if (init_x % resolution) < (resolution/2):
+                init_x_pixel = math.floor(init_x / resolution)
             else:
-                goal_x_pixel = math.ceil((goal_x - low_lim_x) / resolution)
-            if ((goal_y - low_lim_y) / resolution) % 1 < 0.5:
-                goal_y_pixel = math.floor((goal_y - low_lim_y) / resolution)
+                init_x_pixel = math.ceil(init_x / resolution)
+
+            if (init_y % resolution) < (resolution/2):
+                init_y_pixel = math.floor(init_y / resolution)
             else:
-                goal_y_pixel = math.ceil((goal_y - low_lim_y) / resolution)
+                init_y_pixel = math.ceil(init_y / resolution)
+
+            if (goal_x % resolution) < (resolution/2):
+                goal_x_pixel = math.floor(goal_x / resolution)
+            else:
+                goal_x_pixel = math.ceil(goal_x / resolution)
+
+            if (goal_y % resolution) < (resolution/2):
+                goal_y_pixel = math.floor(goal_y / resolution)
+            else:
+                goal_y_pixel = math.ceil(goal_y / resolution)
+
+
             if (not((np.sqrt((goal_x-init_x)**2 + (goal_y-init_y)**2)) < goal_region))\
-                 and (not(cm_rev2[30][30]<0.03)) and (not(cm_rev2[goal_x_pixel][goal_y_pixel]<0.03)):
+                 and (not(img[init_x_pixel][init_y_pixel]<0.03)) and (not(img[goal_x_pixel][goal_y_pixel]<0.03)):
                 break
 
         init_theta = random.uniform(-(2 * np.pi), (2 * np.pi)) 
         init_v = random.uniform(min_v, max_v)
         init_w = random.uniform(min_w, max_w)
 
+        cm = img[init_x_pixel-orig_px:init_x_pixel+orig_px, init_y_pixel-orig_px:init_y_pixel+orig_px]
+        # cm_rev = costmap.cm_rev(cm)
+        obstacles = costmap.find_obstacles(cm)
 
 
         heading_cost_weight = random.uniform(heading_cost_weight_base - delta_heading, heading_cost_weight_base + delta_heading)
         obstacle_cost_weight = random.uniform(obstacle_cost_weight_base - delta_obstacle, obstacle_cost_weight_base + delta_obstacle)
         velocity_cost_weight = random.uniform(velocity_cost_weight_base - delta_velocity, velocity_cost_weight_base + delta_velocity)
 
-        robot = Robot(cm_rev2,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
+        robot = Robot(cm,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
                         heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y)
         state = RobotState(init_x,init_y,init_theta,init_v,init_w)
 
@@ -91,7 +122,7 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
         # obs_x, obs_y = robot.obs_pos_trial(obstacles)
 
 
-        resolution = 0.05
+        # resolution = 0.05
 
         num_cycle = 0
         num_cycle_max = 300 #deneme yanılma dogrusunu bul!!
@@ -104,7 +135,7 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
             if failFlag:
                 reward_temp = -30
                 reward_list.append(reward_temp)
-                costmap_list.append(rand_cm)
+                costmap_list.append(cm)
                 initial_states_list.append(init_state)
                 weights_list.append(weights)
                 break 
@@ -117,10 +148,10 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
 
             x_pixel = robot.meter2pixel(state.x,state,'x')
             y_pixel = robot.meter2pixel(state.y,state,'y')
-            if cm_rev2[x_pixel][y_pixel]<0.03:
+            if cm[x_pixel][y_pixel]<0.03:
                 reward_temp = -30
                 reward_list.append(reward_temp)
-                costmap_list.append(rand_cm)
+                costmap_list.append(cm)
                 initial_states_list.append(init_state)
                 weights_list.append(weights)
                 break
@@ -131,7 +162,7 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
                 # goal_Flag = True
                 reward_temp = 100
                 reward_list.append(reward_temp)
-                costmap_list.append(rand_cm)
+                costmap_list.append(cm)
                 initial_states_list.append(init_state)
                 weights_list.append(weights)
                 break
@@ -141,7 +172,7 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
             else:
                 reward_temp = 0
                 reward_list.append(reward_temp)
-                costmap_list.append(rand_cm)
+                costmap_list.append(cm)
                 initial_states_list.append(init_state)
                 weights_list.append(weights)
                 break
@@ -161,12 +192,14 @@ def main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
 heading_cost_weight_base = 0.8
 obstacle_cost_weight_base = 0.1
 velocity_cost_weight_base = 0.1
-goal_region = 0.1
+goal_region = 0.3
+
+path = '4training.png'
 
 print("Start!!")
 # start_time = time.perf_counter()
-main(filename,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
-        heading_cost_weight_base,obstacle_cost_weight_base,velocity_cost_weight_base,goal_region)
+main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
+        heading_cost_weight_base,obstacle_cost_weight_base,velocity_cost_weight_base,goal_region,path)
 # end_time = time.perf_counter()
 
 # print("Run time = {} msec".format(1000*(end_time-start_time)))
