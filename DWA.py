@@ -27,15 +27,16 @@ class Obstacle:
 class Costmap:
 
 
-    def readImageMap(self,path,dimensions=(1000,500)):
+    def readImageMap(self,path,resize_constant):
         img = cv2.imread(path)
-        # img = cv2.resize(img,dimensions)
+        dimensions = (int(resize_constant*img.shape[0]),int(resize_constant*img.shape[1]))
+        img = cv2.resize(img,dimensions)
         # img = cv2.transpose(img)
         img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         # img_gray_mod = deepcopy(img_gray)
         img_gray_mod_2 = deepcopy(img_gray)
 
-        fp = disk(5) #5 olacak!!
+        # fp = disk(5) #5 olacak!!
         # img_gray_mod_2 = erosion(img_gray_mod,fp) #obstacle size enlarged
 
         np.putmask(img_gray_mod_2, img_gray_mod_2<205, 0) #occupied
@@ -141,6 +142,35 @@ class RobotState:
     def traj(self):
         return self.traj_x,self.traj_y
 
+    def update_costmap(self,img,x,y,resolution,orig_px):
+
+        if (x % resolution) < (resolution/2):
+            x_pixel = math.floor(x / resolution)
+        else:
+            x_pixel = math.ceil(x / resolution)
+
+        if (y % resolution) < (resolution/2):
+            y_pixel = math.floor(y / resolution)
+        else:
+            y_pixel = math.ceil(y / resolution)
+
+        cm = img[x_pixel - orig_px:x_pixel + orig_px, y_pixel - orig_px:y_pixel + orig_px] #SORUN BURADA
+
+        if not(cm.shape == (2*orig_px,2*orig_px)):
+            if x_pixel + orig_px > img.shape[0]:
+                cm = np.vstack((cm,np.ones((x_pixel + orig_px-img.shape[0],2*orig_px))))
+            if y_pixel + orig_px > img.shape[1]:
+                cm = np.hstack((cm,np.ones((2*orig_px,y_pixel + orig_px-img.shape[1]))))
+            if x_pixel - orig_px < 0:
+                cm = img[0:x_pixel + orig_px, y_pixel - orig_px:y_pixel + orig_px]
+                cm = np.vstack((np.ones((abs(x_pixel - orig_px),2*orig_px)),cm))
+            if y_pixel - orig_px < 0:
+                cm = img[x_pixel - orig_px:x_pixel + orig_px, 0:y_pixel + orig_px]
+                cm = np.hstack((np.ones((abs(y_pixel - orig_px),2*orig_px)),cm))
+        #görüntü dışına çıkınca cm sizeı (2*orig_px,2*orig_px) olamıyor.
+
+        return cm
+
 class Robot:
     def __init__(self,costmap,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
                 heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y):
@@ -230,11 +260,11 @@ class Robot:
         return next_x_s, next_y_s, next_theta_s
 
 
-    def calc_opt_traj(self,goal_x,goal_y,state,obstacles,goal_region):
+    def calc_opt_traj(self,goal_x,goal_y,state,goal_region):
 
         paths = self.make_path(state)
         # paths = self.check_path_velo(paths,obstacles)
-        opt_path,failFlag = self.eval_path(paths,goal_x,goal_y,obstacles,state,goal_region)
+        opt_path,failFlag = self.eval_path(paths,goal_x,goal_y,state,goal_region)
         
         self.traj_opt.append(opt_path)
 
@@ -269,7 +299,7 @@ class Robot:
         return paths
 
 
-    def eval_path(self,paths,goal_x,goal_y,obstacles,state,goal_region):
+    def eval_path(self,paths,goal_x,goal_y,state,goal_region):
         
         failFlag = False
         score_headings_temp = []
@@ -334,6 +364,8 @@ class Robot:
     def check_path_velo(self,path,idx,xx,yy,v,w,state,resolution = 0.05):
 
         if idx == None:
+            return True
+        if xx == None or yy == None:
             return True
         else:
             x_0 = self.meter2pixel(path.x[idx],state,'x')
@@ -448,29 +480,47 @@ class Robot:
 
     def meter2pixel(self,x,state,var,resolution=0.05):
 
+        x = round(x,3)
         #init yerine state olmalı !!
         if var == 'x':
             init = self.init_x
+            # init = state.x
         elif var == 'y':
             init = self.init_y
+            # init = state.y
 
 
-        if x > init:       
-            x_pixel = (math.ceil((x-init-(resolution/2))/resolution))+self.origin_pixel
-        elif x == init:
-            return self.origin_pixel
+        # if x > init:       
+        #     x_pixel = (math.ceil((x-init-(resolution/2))/resolution))+self.origin_pixel
+        # elif x == init:
+        #     return self.origin_pixel
+        # else:
+        #     x_pixel = self.origin_pixel - abs(math.floor((x-init+(resolution/2))/resolution))
+
+        if (abs(x-init) % resolution) < (resolution/2):
+            if x > init:
+                x_pixel = math.floor((x-init) / resolution) + self.origin_pixel
+            elif x < init:
+                x_pixel = self.origin_pixel - math.floor((init-x)/resolution)
+            else:
+                x_pixel = self.origin_pixel
         else:
-            x_pixel = self.origin_pixel - abs(math.floor((x-init+(resolution/2))/resolution))
+            if x > init:
+                x_pixel = math.ceil((x-init) / resolution) + self.origin_pixel
+            elif x < init:
+                x_pixel = self.origin_pixel - math.ceil((init-x)/resolution)
 
-        if x_pixel<0 or x_pixel > len(self.costmap[0]):
-            raise IndexError
+
+        # if x_pixel<0 or not(x_pixel < len(self.costmap[0])):
+        #     raise IndexError
 
         return x_pixel
 
 
     def calc_clearance(self,path,state):
 
-
+        xx = None
+        yy = None
         self.temp_cost = 0
         self.temp_obs = 0
         temp_stp = 0
@@ -518,37 +568,41 @@ class Robot:
             stp =  max(abs(x2-x1),abs(y2-y1))
             
             if stp == 0:
-                # if x1<40 and y1<40:
-                if a > 0:
-                    x3 = self.meter2pixel(path.x[a-1],state,'x')
-                    y3 = self.meter2pixel(path.y[a-1],state,'y')
-                    if max(abs(x2-x1),abs(y2-y1),abs(y3-y2),abs(x3-x2)) == 0:
-                        if not (a == len(path.x)-2):
-                            continue
-                        else:
-                            return cost_temp/temp_stp,None,x1,y1
-                if self.costmap[x1][y1] <0.03:
-                    return cost_temp/temp_stp,a,x1,y1
+                if 0<x1<len(self.costmap) and 0<y1<len(self.costmap):
+                    if a > 0:
+                        x3 = self.meter2pixel(path.x[a-1],state,'x')
+                        y3 = self.meter2pixel(path.y[a-1],state,'y')
+                        if max(abs(x2-x1),abs(y2-y1),abs(y3-y2),abs(x3-x2)) == 0:
+                            if not (a == len(path.x)-2):
+                                continue
+                            else:
+                                return cost_temp/temp_stp,None,x1,y1
+                    if self.costmap[x1][y1] <0.03:
+                        return cost_temp/temp_stp,a,x1,y1
+                    else:
+                        cost_temp = cost_temp + self.costmap[x1][y1]
                 else:
-                    cost_temp = cost_temp + self.costmap[x1][y1]
+                    cost_temp = cost_temp + 1 #yeni ekledim
             else:
                 for i in range (1,stp+1):
                     if abs(x2-x1) > abs(y2-y1):
                         xx = x1 + sign_x*i
                         yy = y1 + math.floor(sign_y*i*slope)
-                        # if xx<40 and yy<40:
-                        if self.costmap[xx][yy] <0.03:
-                            return cost_temp/temp_stp,a,xx,yy
-                        else:
-                            cost_temp = cost_temp + self.costmap[xx][yy]
+                        if xx<len(self.costmap) and yy<len(self.costmap):
+                            if self.costmap[xx][yy] <0.03:
+                                return cost_temp/temp_stp,a,xx,yy
+                            else:
+                                cost_temp = cost_temp + self.costmap[xx][yy]
+                        else: cost_temp = cost_temp + 1 #yeni ekledim
                     else:
                         yy = y1 + sign_y*i
                         xx = x1 + math.floor(sign_x*i*(slope))               
-                        # if xx<40 and yy<40:
-                        if self.costmap[xx][yy] <0.03:
-                            return cost_temp/temp_stp,a,xx,yy
-                        else: 
-                            cost_temp = cost_temp + self.costmap[xx][yy]
+                        if 0<xx<len(self.costmap) and 0<yy<len(self.costmap):
+                            if self.costmap[xx][yy] <0.03:
+                                return cost_temp/temp_stp,a,xx,yy
+                            else: 
+                                cost_temp = cost_temp + self.costmap[xx][yy]
+                        else: cost_temp = cost_temp + 1 #yeni ekledim
 
         cost_norm = cost_temp/temp_stp
 
