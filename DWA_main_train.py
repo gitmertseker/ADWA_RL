@@ -1,11 +1,12 @@
 import math
 import numpy as np
-import time
+# import time
 from copy import deepcopy
 from DWA import Path,Obstacle,RobotState,Robot,Costmap
 import random
 import zarr
-from numba import jit
+import cv2
+from numba import njit
 
 #robot parameters
 min_v = 0  # minimum translational velocity
@@ -24,10 +25,34 @@ dt =  0.1  # time step
 n =   30      # how many time intervals
 
 
-# @jit
+
+def readImageMap(path,resize_constant):
+    img = cv2.imread(path)
+    dimensions = (int(resize_constant*img.shape[0]),int(resize_constant*img.shape[1]))
+    img = cv2.resize(img,dimensions)
+    # img = cv2.transpose(img)
+    img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    # img_gray_mod = deepcopy(img_gray)
+    img_gray_mod_2 = deepcopy(img_gray)
+
+    # fp = disk(5) #5 olacak!!
+    # img_gray_mod_2 = erosion(img_gray_mod,fp) #obstacle size enlarged
+
+    np.putmask(img_gray_mod_2, img_gray_mod_2<205, 0) #occupied
+    np.putmask(img_gray_mod_2, img_gray_mod_2>205, 1) #free
+    np.putmask(img_gray_mod_2, img_gray_mod_2==205, 1) #unknown
+
+    # np.putmask(img_gray, img_gray<205, 0) #occupied
+    # np.putmask(img_gray, img_gray>205, 1) #free
+    # np.putmask(img_gray, img_gray==205, 1) #unknown
+    # self.image = deepcopy(img_gray_mod_2)
+
+    return img_gray_mod_2
+
+@njit
 
 def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
-    heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,goal_region,path):
+    heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,goal_region,img):
     
     resolution = 0.05
     # resolution = 0.02
@@ -35,7 +60,7 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     orig_px=20
     # orig_px = 200 # deneme??
 
-    costmap = Costmap()
+    # costmap = Costmap()
     initial_states_list = []
     costmap_list = []
     reward_list = []
@@ -44,14 +69,15 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     delta_obstacle = 0.3
     delta_velocity = 0.3
     init_goal_range = 1
-    n_sets = 100
+    n_sets = 200
 
-    img = costmap.readImageMap(path,resize_constant=1/10)
+    # img = costmap.readImageMap(path,resize_constant=1/10)
+
 
     for i in range(n_sets):
 
         # Generation of initial states
-        while True:
+        while 1:
             
             low_x = (0 + orig_px) * resolution
             low_y = (0 + orig_px) * resolution
@@ -143,7 +169,7 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
         num_cycle = 0
         num_cycle_max = 300 #deneme yanılma dogrusunu bul!!
 
-        while True:
+        while 1:
             
             paths,opt_path,failFlag = robot.calc_opt_traj(goal_x,goal_y,state,goal_region)
 
@@ -217,11 +243,14 @@ velocity_cost_weight_base = 0.1
 goal_region = 0.1
 
 path = '4training.png'
-
+resize_constant=1/10
 # print("Start!!")
 # start_time = time.perf_counter()
+
+img = readImageMap(path,resize_constant)
+
 main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
-        heading_cost_weight_base,obstacle_cost_weight_base,velocity_cost_weight_base,goal_region,path)
+        heading_cost_weight_base,obstacle_cost_weight_base,velocity_cost_weight_base,goal_region,img)
 # end_time = time.perf_counter()
 
 # print("Run time = {} msec".format(1000*(end_time-start_time)))

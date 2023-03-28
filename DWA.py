@@ -3,10 +3,11 @@ import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
 import cv2
-from skimage.morphology import erosion,disk
+# from skimage.morphology import erosion,disk
+from numba.experimental import jitclass
 
 
-
+@jitclass
 class Path:
     def __init__(self,v,w):
         self.x = None
@@ -16,15 +17,18 @@ class Path:
         self.w = w
         self.admissibility = True
 
-
+@jitclass
 class Obstacle:
     def __init__(self,x,y):
         self.x = x
         self.y = y
 
 
-
+@jitclass
 class Costmap:
+
+    def __init__(self):
+        pass
 
 
     def readImageMap(self,path,resize_constant):
@@ -34,17 +38,21 @@ class Costmap:
         # img = cv2.transpose(img)
         img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
         # img_gray_mod = deepcopy(img_gray)
-        img_gray_mod_2 = deepcopy(img_gray)
+        # img_gray_mod_2 = deepcopy(img_gray)
 
         # fp = disk(5) #5 olacak!!
         # img_gray_mod_2 = erosion(img_gray_mod,fp) #obstacle size enlarged
 
-        np.putmask(img_gray_mod_2, img_gray_mod_2<205, 0) #occupied
-        np.putmask(img_gray_mod_2, img_gray_mod_2>205, 1) #free
-        np.putmask(img_gray_mod_2, img_gray_mod_2==205, 1) #unknown
+        # np.putmask(img_gray_mod_2, img_gray_mod_2<205, 0) #occupied
+        # np.putmask(img_gray_mod_2, img_gray_mod_2>205, 1) #free
+        # np.putmask(img_gray_mod_2, img_gray_mod_2==205, 1) #unknown
+
+        np.putmask(img_gray, img_gray<205, 0) #occupied
+        np.putmask(img_gray, img_gray>205, 1) #free
+        np.putmask(img_gray, img_gray==205, 1) #unknown
         # self.image = deepcopy(img_gray_mod_2)
 
-        return img_gray_mod_2
+        return img_gray
 
     def read_costmap(self,filename):
 
@@ -103,7 +111,7 @@ class Costmap:
             return row, column
         return -1
 
-
+@jitclass
 class RobotState:
     def __init__(self,init_x,init_y,init_theta,init_v,init_w):
 
@@ -171,6 +179,7 @@ class RobotState:
 
         return cm
 
+@jitclass
 class Robot:
     def __init__(self,costmap,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
                 heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y):
