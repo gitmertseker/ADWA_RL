@@ -5,26 +5,38 @@ import matplotlib.pyplot as plt
 import cv2
 # from skimage.morphology import erosion,disk
 from numba.experimental import jitclass
+from numba import float32, boolean, int32, int8
+import numba
+
+# spec = [('x', float32),
+#         ('y', float32),
+#         ('theta', float32),
+#         ('v', float32),
+#         ('w', float32),
+#         ('admissibility', boolean)]
 
 
-@jitclass
+# @jitclass(spec)
 class Path:
     def __init__(self,v,w):
-        self.x = None
-        self.y = None
-        self.theta = None
+        self.x = 0.0
+        self.y = 0.0
+        self.theta = 0.0
         self.v = v
         self.w = w
         self.admissibility = True
 
-@jitclass
+# spec1 = [('x', float32),
+#         ('y', float32)]
+
+# @jitclass(spec1)
 class Obstacle:
     def __init__(self,x,y):
         self.x = x
         self.y = y
 
 
-@jitclass
+# @jitclass
 class Costmap:
 
     def __init__(self):
@@ -111,7 +123,18 @@ class Costmap:
             return row, column
         return -1
 
-@jitclass
+"""
+spec2 = [('x', float32),
+        ('y', float32),
+        ('theta', float32),
+        ('v', float32),
+        ('w', float32),
+        ('traj_x', float32[:]),
+        ('traj_y', float32[:]),
+        ('traj_theta', float32[:]),
+        ('dt', float32)]"""
+
+# @jitclass(spec2)
 class RobotState:
     def __init__(self,init_x,init_y,init_theta,init_v,init_w):
 
@@ -122,9 +145,9 @@ class RobotState:
         self.v = init_v
         self.w = init_w
 
-        self.traj_x = [init_x]
-        self.traj_y = [init_y]
-        self.traj_theta = [init_theta]
+        # self.traj_x = [init_x]
+        # self.traj_y = [init_y]
+        # self.traj_theta = [init_theta]
 
     def update_state(self,v,w,dt):
 
@@ -136,9 +159,9 @@ class RobotState:
         next_y = (self.v * math.sin(self.theta) * self.dt) + self.y
         next_theta = (self.w * self.dt) + self.theta
 
-        self.traj_x.append(next_x)
-        self.traj_y.append(next_y)
-        self.traj_theta.append(next_theta)
+        # self.traj_x.append(next_x)
+        # self.traj_y.append(next_y)
+        # self.traj_theta.append(next_theta)
 
         self.x = next_x
         self.y = next_y
@@ -147,9 +170,9 @@ class RobotState:
         return self.x, self.y, self.theta
 
 
-    def traj(self):
-        return self.traj_x,self.traj_y
-
+    # def traj(self):
+    #     return self.traj_x,self.traj_y
+    
     def update_costmap(self,img,x,y,resolution,orig_px):
 
         if (x % resolution) < (resolution/2):
@@ -166,22 +189,60 @@ class RobotState:
 
         if not(cm.shape == (2*orig_px,2*orig_px)):
             if x_pixel + orig_px > img.shape[0]:
-                cm = np.vstack((cm,np.ones((x_pixel + orig_px-img.shape[0],2*orig_px))))
+                # cm = np.vstack((cm,np.ones((x_pixel + orig_px-img.shape[0],2*orig_px))))
+                cm = np.vstack((cm,np.zeros((x_pixel + orig_px-img.shape[0],2*orig_px)))) #engelle doldur
             if y_pixel + orig_px > img.shape[1]:
-                cm = np.hstack((cm,np.ones((2*orig_px,y_pixel + orig_px-img.shape[1]))))
+                # cm = np.hstack((cm,np.ones((2*orig_px,y_pixel + orig_px-img.shape[1]))))
+                cm = np.hstack((cm,np.zeros((2*orig_px,y_pixel + orig_px-img.shape[1])))) #engelle doldur
             if x_pixel - orig_px < 0:
                 cm = img[0:x_pixel + orig_px, y_pixel - orig_px:y_pixel + orig_px]
-                cm = np.vstack((np.ones((abs(x_pixel - orig_px),2*orig_px)),cm))
+                # cm = np.vstack((cm, np.ones((abs(x_pixel - orig_px),2*orig_px))))
+                cm = np.vstack((cm, np.zeros((abs(x_pixel - orig_px),2*orig_px)))) #engelle doldur
             if y_pixel - orig_px < 0:
                 cm = img[x_pixel - orig_px:x_pixel + orig_px, 0:y_pixel + orig_px]
-                cm = np.hstack((np.ones((abs(y_pixel - orig_px),2*orig_px)),cm))
+                # cm = np.hstack((cm, np.ones((2*orig_px, abs(y_pixel - orig_px)))))
+                cm = np.hstack((cm, np.zeros((2*orig_px, abs(y_pixel - orig_px))))) #engelle doldur
         #görüntü dışına çıkınca cm sizeı (2*orig_px,2*orig_px) olamıyor.
 
         return cm
+"""
+spec3 = [('init_x', float32),
+        ('init_y', float32),
+        ('delta_v', float32),
+        ('delta_w', float32),
+        ('max_dec_v', float32),
+        ('max_dec_w', float32),
+        ('max_a_v', float32),
+        ('max_a_w', float32),
+        ('max_v', float32),
+        ('max_w', float32),
+        ('min_v', float32),
+        ('min_w', float32),
+        # ('costmap', int32[:,:]),
+        ('costmap', int8[:,:]),
+        ('v_count', int32),
+        ('w_count', int32),
+        ('heading_cost_weight', float32),
+        ('obstacle_cost_weight', float32),
+        ('velocity_cost_weight', float32),
+        ('velocity_cost_weight', float32),
+        # ('traj_paths', float32[:,:]),
+        ('traj_opt', float32[:]),
+        ('origin_pixel', int32),
+        ('n', int32),
+        ('cur_v', float32),
+        ('cur_w', float32),
+        ('min_v_dw', float32),
+        ('min_w_dw', float32),
+        ('max_v_dw', float32),
+        ('max_w_dw', float32),
+        ('temp_cost', float32),
+        ('temp_obs', float32),
+        ('dt', float32)]"""
 
-@jitclass
+# @jitclass(spec3)
 class Robot:
-    def __init__(self,costmap,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
+    def __init__(self,min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
                 heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y):
         #robot parameters
 
@@ -201,8 +262,6 @@ class Robot:
         self.init_x = init_x
         self.init_y = init_y
 
-        self.costmap = costmap
-
         self.v_count = 8
         self.w_count = 8
 
@@ -211,8 +270,8 @@ class Robot:
         self.obstacle_cost_weight = obstacle_cost_weight
         self.velocity_cost_weight = velocity_cost_weight
 
-        self.traj_paths = []
-        self.traj_opt = []
+        # self.traj_paths = []
+        # self.traj_opt = []
 
         self.origin_pixel = orig_px
 
@@ -269,13 +328,13 @@ class Robot:
         return next_x_s, next_y_s, next_theta_s
 
 
-    def calc_opt_traj(self,goal_x,goal_y,state,goal_region):
+    def calc_opt_traj(self,goal_x,goal_y,state,goal_region,costmap):
 
         paths = self.make_path(state)
         # paths = self.check_path_velo(paths,obstacles)
-        opt_path,failFlag = self.eval_path(paths,goal_x,goal_y,state,goal_region)
+        opt_path,failFlag = self.eval_path(paths,goal_x,goal_y,state,goal_region,costmap)
         
-        self.traj_opt.append(opt_path)
+        # self.traj_opt.append(opt_path)
 
         return paths, opt_path, failFlag
 
@@ -288,12 +347,14 @@ class Robot:
         self.min_w_dw = dw[2]
         self.max_w_dw = dw[3]
 
+
         paths = []
 
         for w in np.linspace(self.min_w_dw,self.max_w_dw,self.w_count):
             for v in np.linspace(self.min_v_dw,self.max_v_dw,self.v_count):
                 if not (v == 0 and w == 0):
                     path = Path(v,w)
+                    # numba.literally(path)
                     next_x, next_y, next_theta = self.predict_state(v,w,state.x,state.y,state.theta,self.dt,self.n)
 
                     path.x = next_x
@@ -303,12 +364,12 @@ class Robot:
                     paths.append(path)
                 # print("path number :" + str(len(paths)-1)+" ,linear speed :" + str(v) + " ,angular speed :" +str(w))
 
-        self.traj_paths.append(paths)
-
+        # self.traj_paths.append(paths)
+        # numba.literally(paths)
         return paths
 
 
-    def eval_path(self,paths,goal_x,goal_y,state,goal_region):
+    def eval_path(self,paths,goal_x,goal_y,state,goal_region,costmap):
         
         failFlag = False
         score_headings_temp = []
@@ -322,7 +383,7 @@ class Robot:
 
             score_headings_temp.append(self.calc_heading(path,goal_x,goal_y,state,goal_region))
             score_velocities_temp.append(self.calc_velocity(path))
-            temp_score,idx,xx,yy = self.calc_clearance(path,state)
+            temp_score,idx,xx,yy = self.calc_clearance(path,state,costmap)
             # score_obstacles.append(self.calc_clearance(path,state)) #iceride normalize ediliyor !!
             score_obstacles.append(temp_score)
             obs_idx.append(idx)
@@ -335,7 +396,7 @@ class Robot:
         #normalization
         score_headings = [h/math.pi for h in score_headings_temp]  
 
-        score_velocities = [h/self.max_v_dw for h in score_velocities_temp]
+        score_velocities = [h/self.max_v_dw for h in score_velocities_temp]  #Buraya tekrar bak !!!
 
         score = 0
 
@@ -389,9 +450,9 @@ class Robot:
 
             cond_v =  v < np.sqrt(2*sum*self.max_dec_v)
             dist_w = abs(path.theta[idx]-state.theta)
-            cond_w =  w < np.sqrt(2*dist_w*self.max_dec_w)
+            cond_w =  w < np.sqrt(2*dist_w*self.max_dec_w) #bu conditiona gerek yok çizgisel hız conditionı durmak için yeterli!!!
 
-            if cond_v and cond_w:
+            if cond_v and cond_w: #cond_w kaldırılacak makaledeki tanım mantıklı değil !!!
                 return True
             else:
                 return False
@@ -458,7 +519,7 @@ class Robot:
 
 
 
-    def pixel2meter(self,pixel):
+    def pixel2meter(self,pixel): #resolution eklenecek !!
 
             # (20,20) initial robot position, resolution = 5 cm/pixel
 
@@ -526,7 +587,7 @@ class Robot:
         return x_pixel
 
 
-    def calc_clearance(self,path,state):
+    def calc_clearance(self,path,state,costmap):
 
         xx = None
         yy = None
@@ -577,7 +638,7 @@ class Robot:
             stp =  max(abs(x2-x1),abs(y2-y1))
             
             if stp == 0:
-                if 0<x1<len(self.costmap) and 0<y1<len(self.costmap):
+                if 0<x1<len(costmap) and 0<y1<len(costmap):
                     if a > 0:
                         x3 = self.meter2pixel(path.x[a-1],state,'x')
                         y3 = self.meter2pixel(path.y[a-1],state,'y')
@@ -586,10 +647,10 @@ class Robot:
                                 continue
                             else:
                                 return cost_temp/temp_stp,None,x1,y1
-                    if self.costmap[x1][y1] <0.03:
+                    if costmap[x1][y1] <0.03:
                         return cost_temp/temp_stp,a,x1,y1
                     else:
-                        cost_temp = cost_temp + self.costmap[x1][y1]
+                        cost_temp = cost_temp + costmap[x1][y1]
                 else:
                     cost_temp = cost_temp + 1 #yeni ekledim
             else:
@@ -597,20 +658,20 @@ class Robot:
                     if abs(x2-x1) > abs(y2-y1):
                         xx = x1 + sign_x*i
                         yy = y1 + math.floor(sign_y*i*slope)
-                        if xx<len(self.costmap) and yy<len(self.costmap):
-                            if self.costmap[xx][yy] <0.03:
+                        if xx<len(costmap) and yy<len(costmap):
+                            if costmap[xx][yy] <0.03:
                                 return cost_temp/temp_stp,a,xx,yy
                             else:
-                                cost_temp = cost_temp + self.costmap[xx][yy]
+                                cost_temp = cost_temp + costmap[xx][yy]
                         else: cost_temp = cost_temp + 1 #yeni ekledim
                     else:
                         yy = y1 + sign_y*i
                         xx = x1 + math.floor(sign_x*i*(slope))               
-                        if 0<xx<len(self.costmap) and 0<yy<len(self.costmap):
-                            if self.costmap[xx][yy] <0.03:
+                        if 0<xx<len(costmap) and 0<yy<len(costmap):
+                            if costmap[xx][yy] <0.03:
                                 return cost_temp/temp_stp,a,xx,yy
                             else: 
-                                cost_temp = cost_temp + self.costmap[xx][yy]
+                                cost_temp = cost_temp + costmap[xx][yy]
                         else: cost_temp = cost_temp + 1 #yeni ekledim
 
         cost_norm = cost_temp/temp_stp
