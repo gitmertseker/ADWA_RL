@@ -145,7 +145,7 @@ cm_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/costmap_list.zarr'
 st_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/initial_states_list.zarr')
 w_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/weights_list.zarr')
 
-
+""
 main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
         cm_list,st_list,w_list,goal_region,img)
 # end_time = time.perf_counter()
