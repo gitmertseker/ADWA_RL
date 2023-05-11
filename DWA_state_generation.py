@@ -65,7 +65,12 @@ def states_generation(img,min_v,max_v,min_w,max_w):
     delta_velocity = 0.3
     init_goal_range = 1
     # n_sets = 3000000
-    n_sets = 200000
+    # n_sets = 200000
+    # n_sets = 100
+    # n_sets = 1000000
+    # n_sets = 100000
+    n_sets = 10000
+
     # img = costmap.readImageMap(path,resize_constant=1/10)
 
 

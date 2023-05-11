@@ -1,11 +1,11 @@
 import math
 import numpy as np
-from copy import deepcopy
-import matplotlib.pyplot as plt
+# from copy import deepcopy
+# import matplotlib.pyplot as plt
 import cv2
 # from skimage.morphology import erosion,disk
-from numba.experimental import jitclass
-from numba import float32, boolean, int32, int8
+# from numba.experimental import jitclass
+# from numba import float32, boolean, int32, int8
 import numba
 
 # spec = [('x', float32),
@@ -99,12 +99,12 @@ class Costmap:
         return obstacles
 
 
-    def cm_rev(self,cm):
-        cm_rev = deepcopy(cm)
-        for i in range (0,len(cm[0])):
-            for z in range(0,len(cm[1])):
-                cm_rev[i][z] = 100-cm[i][z]
-        return cm_rev
+    # def cm_rev(self,cm):
+    #     cm_rev = deepcopy(cm)
+    #     for i in range (0,len(cm[0])):
+    #         for z in range(0,len(cm[1])):
+    #             cm_rev[i][z] = 100-cm[i][z]
+    #     return cm_rev
 
 
     def cm_norm(self,cm_rev):
@@ -172,7 +172,34 @@ class RobotState:
 
     # def traj(self):
     #     return self.traj_x,self.traj_y
-    
+
+    def update_costmap(self, img, x, y, resolution, orig_px):
+        x_pixel = math.floor(x / resolution) if (x % resolution) < (resolution / 2) else math.ceil(x / resolution)
+        y_pixel = math.floor(y / resolution) if (y % resolution) < (resolution / 2) else math.ceil(y / resolution)
+
+        x_min = max(0, x_pixel - orig_px)
+        x_max = min(img.shape[0], x_pixel + orig_px)
+        y_min = max(0, y_pixel - orig_px)
+        y_max = min(img.shape[1], y_pixel + orig_px)
+
+        cm = img[x_min:x_max, y_min:y_max]
+
+        if x_min != x_pixel - orig_px:
+            padding = np.zeros(((orig_px - x_pixel + x_min), cm.shape[1]))
+            cm = np.concatenate((padding, cm), axis=0)
+        if x_max != x_pixel + orig_px:
+            padding = np.zeros(((x_pixel + orig_px - x_max), cm.shape[1]))
+            cm = np.concatenate((cm, padding), axis=0)
+        if y_min != y_pixel - orig_px:
+            padding = np.zeros((cm.shape[0], (orig_px - y_pixel + y_min)))
+            cm = np.concatenate((padding, cm), axis=1)
+        if y_max != y_pixel + orig_px:
+            padding = np.zeros((cm.shape[0], (y_pixel + orig_px - y_max)))
+            cm = np.concatenate((cm, padding), axis=1)
+
+        return cm
+
+'''
     def update_costmap(self,img,x,y,resolution,orig_px):
 
         if (x % resolution) < (resolution/2):
@@ -205,6 +232,9 @@ class RobotState:
         #görüntü dışına çıkınca cm sizeı (2*orig_px,2*orig_px) olamıyor.
 
         return cm
+'''
+
+
 """
 spec3 = [('init_x', float32),
         ('init_y', float32),
@@ -238,7 +268,8 @@ spec3 = [('init_x', float32),
         ('max_w_dw', float32),
         ('temp_cost', float32),
         ('temp_obs', float32),
-        ('dt', float32)]"""
+        ('dt', float32)]
+        """
 
 # @jitclass(spec3)
 class Robot:

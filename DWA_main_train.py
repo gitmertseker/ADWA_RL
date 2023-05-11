@@ -2,12 +2,12 @@ import math
 import numpy as np
 # import time
 from copy import deepcopy
-from DWA import Path,Obstacle,RobotState,Robot,Costmap
-import random
+from DWA import RobotState,Robot  #,Path,Obstacle, Costmap
+# import random
 import zarr
 import cv2
-from numba import njit
-from numba.experimental import jitclass
+# from numba import njit
+# from numba.experimental import jitclass
 
 #robot parameters
 min_v = 0  # minimum translational velocity
@@ -29,8 +29,8 @@ n =   30      # how many time intervals
 
 def readImageMap(path,resize_constant):
     img = cv2.imread(path)
-    dimensions = (int(resize_constant*img.shape[0]),int(resize_constant*img.shape[1]))
-    img = cv2.resize(img,dimensions)
+    # dimensions = (int(resize_constant*img.shape[0]),int(resize_constant*img.shape[1])) #resize etmiyorum şu an için!!
+    # img = cv2.resize(img,dimensions)
     # img = cv2.transpose(img)
     img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     # img_gray_mod = deepcopy(img_gray)
@@ -66,7 +66,7 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
 
     for i in range(len(cm_list)):
 
-        print(i)
+        # print(i)
         init_x,init_y,init_theta,goal_x,goal_y,init_v,init_w = st_list[i]
         heading_cost_weight, obstacle_cost_weight, velocity_cost_weight = w_list[i]
         cm = cm_list[i]
@@ -82,7 +82,7 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
         # obs_x, obs_y = robot.obs_pos_trial(obstacles)
 
         num_cycle = 0
-        num_cycle_max = 300 #deneme yanılma dogrusunu bul!!
+        num_cycle_max = 500 #deneme yanılma dogrusunu bul!!
 
         while 1:
             
@@ -128,12 +128,12 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
                 reward_list.append(reward_temp)
                 break
 
-    zarr.save('D:/Python_Projects/ADWA_RL/unknown_obstacle/reward_list_200_corrected.zarr', reward_list)
+    zarr.save('D:/Python/ADWA_RL/reward_list_1000000.zarr', reward_list)
 
 
 
 # goal_region = 0.3
-goal_region = 0.1
+goal_region = 0.2
 
 path = '4training.png'
 resize_constant=1/10
@@ -141,11 +141,11 @@ resize_constant=1/10
 # start_time = time.perf_counter()
 
 img = readImageMap(path,resize_constant)
-cm_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/costmap_list.zarr')
-st_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/initial_states_list.zarr')
-w_list = zarr.load('D:/Python_Projects/ADWA_RL/200_no_reward/weights_list.zarr')
+cm_list = zarr.load('D:/Python/ADWA_RL/1000000/costmap_list.zarr')
+st_list = zarr.load('D:/Python/ADWA_RL/1000000/initial_states_list.zarr')
+w_list = zarr.load('D:/Python/ADWA_RL/1000000/weights_list.zarr')
 
-""
+
 main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
         cm_list,st_list,w_list,goal_region,img)
 # end_time = time.perf_counter()

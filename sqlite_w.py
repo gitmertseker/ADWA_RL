@@ -4,11 +4,11 @@ from tqdm import tqdm
 import zarr
 
 # Create a large NumPy array
-weights_list = zarr.load('D:/Python_Projects/ADWA_RL/200000/weights_list.zarr')
+weights_list = zarr.load('D:/Python/ADWA_RL/10000/weights_list.zarr')
 # large_array = np.random.rand(10000, 10000)
 
 # Save the NumPy array in an SQLite database
-conn = sqlite3.connect("weights_list.db")
+conn = sqlite3.connect("weights_list_10000.db")
 c = conn.cursor()
 
 # Drop the old table if it exists
@@ -18,7 +18,7 @@ c.execute("DROP TABLE IF EXISTS weights_list")
 c.execute("CREATE TABLE weights_list (h REAL, o REAL, v REAL)")
 
 # Define the chunk size
-chunk_size = 1000
+chunk_size = 100
 
 # Insert data in chunks using executemany
 rows, cols = weights_list.shape
