@@ -6,6 +6,7 @@ from DWA import RobotState,Robot  #,Path,Obstacle, Costmap
 # import random
 import zarr
 import cv2
+from joblib import Parallel, delayed
 # from numba import njit
 # from numba.experimental import jitclass
 
@@ -52,7 +53,7 @@ def readImageMap(path,resize_constant):
 
 # @njit
 
-def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
+def main(i,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     cm_list,st_list,w_list,goal_region,img):
     
     resolution = 0.05
@@ -62,73 +63,77 @@ def main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     # orig_px = 200 # deneme??
     # for cm,st,w in zip(cm_list,st_list,w_list):
     # r_list = np.zeros((1,len(cm_list)))
-    reward_list = []
+    # reward_list = []
 
-    for i in range(len(cm_list)):
+    # for i in range(len(cm_list)):
 
-        # print(i)
-        init_x,init_y,init_theta,goal_x,goal_y,init_v,init_w = st_list[i]
-        heading_cost_weight, obstacle_cost_weight, velocity_cost_weight = w_list[i]
-        cm = cm_list[i]
+    # print(i)
+    init_x,init_y,init_theta,goal_x,goal_y,init_v,init_w = st_list[i]
+    heading_cost_weight, obstacle_cost_weight, velocity_cost_weight = w_list[i]
+    cm = cm_list[i]
 
-        # img = costmap.readImageMap(path,resize_constant=1/10)
-
-
-        robot = Robot(min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
-                        heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y)
-        state = RobotState(init_x,init_y,init_theta,init_v,init_w)
-
-        # obs_x, obs_y = robot.obstacle_position(obstacles,state)
-        # obs_x, obs_y = robot.obs_pos_trial(obstacles)
-
-        num_cycle = 0
-        num_cycle_max = 500 #deneme yanılma dogrusunu bul!!
-
-        while 1:
-            
-            paths,opt_path,failFlag = robot.calc_opt_traj(goal_x,goal_y,state,goal_region,cm)
-
-            # velocity commands
-            if failFlag:
-                reward_temp = -30
-                reward_list.append(reward_temp)
-                break 
-
-            opt_v = opt_path.v   
-            opt_w = opt_path.w 
-            # print("Optimal velocities are: ({},{})".format((opt_v),(opt_w)))
-            x,y,theta = state.update_state(opt_v,opt_w,dt)
-            cm = state.update_costmap(img,state.x,state.y,resolution,orig_px)
-
-            # obstacles = costmap.find_obstacles(cm)
+    # img = costmap.readImageMap(path,resize_constant=1/10)
 
 
-            # x_pixel = robot.meter2pixel(state.x,state,'x')
-            # y_pixel = robot.meter2pixel(state.y,state,'y')
-            x_pixel = orig_px
-            y_pixel = orig_px
+    robot = Robot(min_v,max_v,min_w,max_w,max_a_v,max_a_w,max_dec_v,max_dec_w,delta_v,delta_w,dt,n,
+                    heading_cost_weight,obstacle_cost_weight,velocity_cost_weight,orig_px,init_x,init_y)
+    state = RobotState(init_x,init_y,init_theta,init_v,init_w)
 
-            if cm[x_pixel][y_pixel]<0.03:
-                reward_temp = -30
-                reward_list.append(reward_temp)
-                break
+    # obs_x, obs_y = robot.obstacle_position(obstacles,state)
+    # obs_x, obs_y = robot.obs_pos_trial(obstacles)
 
-            dis_to_goal = np.sqrt((goal_x-state.x)**2 + (goal_y-state.y)**2)
-            if dis_to_goal < goal_region:
-                # print("Goal!!")
-                # goal_Flag = True
-                reward_temp = 100
-                reward_list.append(reward_temp)
-                break
+    num_cycle = 0
+    num_cycle_max = 500 #deneme yanılma dogrusunu bul!!
 
-            if num_cycle < num_cycle_max:
-                num_cycle += 1
-            else:
-                reward_temp = 0
-                reward_list.append(reward_temp)
-                break
+    while 1:
+        
+        paths,opt_path,failFlag = robot.calc_opt_traj(goal_x,goal_y,state,goal_region,cm)
 
-    zarr.save('D:/Python/ADWA_RL/reward_list_1000000.zarr', reward_list)
+        # velocity commands
+        if failFlag:
+            # reward_temp = -30
+            # reward_list.append(reward_temp)
+            # break 
+            return -30
+
+        opt_v = opt_path.v   
+        opt_w = opt_path.w 
+        # print("Optimal velocities are: ({},{})".format((opt_v),(opt_w)))
+        x,y,theta = state.update_state(opt_v,opt_w,dt)
+        cm = state.update_costmap(img,state.x,state.y,resolution,orig_px)
+
+        # obstacles = costmap.find_obstacles(cm)
+
+
+        # x_pixel = robot.meter2pixel(state.x,state,'x')
+        # y_pixel = robot.meter2pixel(state.y,state,'y')
+        x_pixel = orig_px
+        y_pixel = orig_px
+
+        if cm[x_pixel][y_pixel]<0.03:
+            # reward_temp = -30
+            # reward_list.append(reward_temp)
+            # break
+            return -30
+
+        dis_to_goal = np.sqrt((goal_x-state.x)**2 + (goal_y-state.y)**2)
+        if dis_to_goal < goal_region:
+            # print("Goal!!")
+            # goal_Flag = True
+            # reward_temp = 100
+            # reward_list.append(reward_temp)
+            # break
+            return 100
+
+        if num_cycle < num_cycle_max:
+            num_cycle += 1
+        else:
+            # reward_temp = 0
+            # reward_list.append(reward_temp)
+            # break
+            return 0
+
+    # zarr.save('D:/Python/ADWA_RL/reward_list_1000000.zarr', reward_list)
 
 
 
@@ -137,8 +142,6 @@ goal_region = 0.2
 
 path = '4training.png'
 resize_constant=1/10
-# print("Start!!")
-# start_time = time.perf_counter()
 
 img = readImageMap(path,resize_constant)
 cm_list = zarr.load('D:/Python/ADWA_RL/1000000/costmap_list.zarr')
@@ -146,8 +149,10 @@ st_list = zarr.load('D:/Python/ADWA_RL/1000000/initial_states_list.zarr')
 w_list = zarr.load('D:/Python/ADWA_RL/1000000/weights_list.zarr')
 
 
-main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
-        cm_list,st_list,w_list,goal_region,img)
-# end_time = time.perf_counter()
+# main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
+        # cm_list,st_list,w_list,goal_region,img)
 
-# print("Run time = {} msec".format(1000*(end_time-start_time)))
+if __name__ == "__main__":
+    num_samples = len(cm_list)
+    reward_list = reward_list = Parallel(n_jobs=-1)(delayed(main)(i, min_v, max_v, min_w, max_w, max_a_v, max_a_w, delta_v, delta_w, dt, n, cm_list, st_list, w_list, goal_region, img) for i in range(num_samples))
+    zarr.save('D:/Python/ADWA_RL/reward_list_1000000.zarr', reward_list)

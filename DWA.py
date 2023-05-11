@@ -199,42 +199,6 @@ class RobotState:
 
         return cm
 
-'''
-    def update_costmap(self,img,x,y,resolution,orig_px):
-
-        if (x % resolution) < (resolution/2):
-            x_pixel = math.floor(x / resolution)
-        else:
-            x_pixel = math.ceil(x / resolution)
-
-        if (y % resolution) < (resolution/2):
-            y_pixel = math.floor(y / resolution)
-        else:
-            y_pixel = math.ceil(y / resolution)
-
-        cm = img[x_pixel - orig_px:x_pixel + orig_px, y_pixel - orig_px:y_pixel + orig_px] #SORUN BURADA
-
-        if not(cm.shape == (2*orig_px,2*orig_px)):
-            if x_pixel + orig_px > img.shape[0]:
-                # cm = np.vstack((cm,np.ones((x_pixel + orig_px-img.shape[0],2*orig_px))))
-                cm = np.vstack((cm,np.zeros((x_pixel + orig_px-img.shape[0],2*orig_px)))) #engelle doldur
-            if y_pixel + orig_px > img.shape[1]:
-                # cm = np.hstack((cm,np.ones((2*orig_px,y_pixel + orig_px-img.shape[1]))))
-                cm = np.hstack((cm,np.zeros((2*orig_px,y_pixel + orig_px-img.shape[1])))) #engelle doldur
-            if x_pixel - orig_px < 0:
-                cm = img[0:x_pixel + orig_px, y_pixel - orig_px:y_pixel + orig_px]
-                # cm = np.vstack((cm, np.ones((abs(x_pixel - orig_px),2*orig_px))))
-                cm = np.vstack((cm, np.zeros((abs(x_pixel - orig_px),2*orig_px)))) #engelle doldur
-            if y_pixel - orig_px < 0:
-                cm = img[x_pixel - orig_px:x_pixel + orig_px, 0:y_pixel + orig_px]
-                # cm = np.hstack((cm, np.ones((2*orig_px, abs(y_pixel - orig_px)))))
-                cm = np.hstack((cm, np.zeros((2*orig_px, abs(y_pixel - orig_px))))) #engelle doldur
-        #görüntü dışına çıkınca cm sizeı (2*orig_px,2*orig_px) olamıyor.
-
-        return cm
-'''
-
-
 """
 spec3 = [('init_x', float32),
         ('init_y', float32),
