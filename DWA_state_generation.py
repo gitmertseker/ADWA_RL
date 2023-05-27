@@ -54,7 +54,7 @@ def states_generation(img,min_v,max_v,min_w,max_w):
     obstacle_cost_weight_base = 0.1
     velocity_cost_weight_base = 0.1
     # goal_region = 0.3
-    goal_region = 0.1
+    goal_region = 0.15
     # costmap = Costmap()
     initial_states_list = []
     costmap_list = []
@@ -63,13 +63,15 @@ def states_generation(img,min_v,max_v,min_w,max_w):
     delta_heading = 0.5
     delta_obstacle = 0.3
     delta_velocity = 0.3
-    init_goal_range = 1
+    init_goal_range = 4
     # n_sets = 3000000
-    # n_sets = 200000
+    n_sets = 200000
     # n_sets = 100
     # n_sets = 1000000
     # n_sets = 100000
-    n_sets = 10000
+    # n_sets = 10000
+    # n_sets = 500000
+
 
     # img = costmap.readImageMap(path,resize_constant=1/10)
 
@@ -164,7 +166,8 @@ def states_generation(img,min_v,max_v,min_w,max_w):
         initial_states_list.append(init_state)
         weights_list.append(weights)
         costmap_list.append(cm_init)
-        print(i)
+        if i % 5000 == 0:
+            print(i)
 
     return costmap_list,initial_states_list,weights_list
 

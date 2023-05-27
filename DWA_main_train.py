@@ -83,7 +83,7 @@ def main(i,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
     # obs_x, obs_y = robot.obs_pos_trial(obstacles)
 
     num_cycle = 0
-    num_cycle_max = 500 #deneme yanılma dogrusunu bul!!
+    num_cycle_max = 300 #deneme yanılma dogrusunu bul!!
 
     while 1:
         
@@ -138,15 +138,15 @@ def main(i,min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
 
 
 # goal_region = 0.3
-goal_region = 0.2
+goal_region = 0.15
 
 path = '4training.png'
 resize_constant=1/10
 
 img = readImageMap(path,resize_constant)
-cm_list = zarr.load('D:/Python/ADWA_RL/1000000/costmap_list.zarr')
-st_list = zarr.load('D:/Python/ADWA_RL/1000000/initial_states_list.zarr')
-w_list = zarr.load('D:/Python/ADWA_RL/1000000/weights_list.zarr')
+cm_list = zarr.load('D:/Python/ADWA_RL/100/costmap_list.zarr')
+st_list = zarr.load('D:/Python/ADWA_RL/100/initial_states_list.zarr')
+w_list = zarr.load('D:/Python/ADWA_RL/100/weights_list.zarr')
 
 
 # main(min_v,max_v,min_w,max_w,max_a_v,max_a_w,delta_v,delta_w,dt,n,
@@ -155,4 +155,4 @@ w_list = zarr.load('D:/Python/ADWA_RL/1000000/weights_list.zarr')
 if __name__ == "__main__":
     num_samples = len(cm_list)
     reward_list = reward_list = Parallel(n_jobs=-1)(delayed(main)(i, min_v, max_v, min_w, max_w, max_a_v, max_a_w, delta_v, delta_w, dt, n, cm_list, st_list, w_list, goal_region, img) for i in range(num_samples))
-    zarr.save('D:/Python/ADWA_RL/reward_list_1000000.zarr', reward_list)
+    zarr.save('D:/Python/ADWA_RL/reward_list_100.zarr', reward_list)

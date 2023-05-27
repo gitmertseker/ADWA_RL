@@ -4,11 +4,11 @@ from tqdm import tqdm
 import zarr
 
 # Create a large NumPy array
-weights_list = zarr.load('D:/Python/ADWA_RL/10000/weights_list.zarr')
+weights_list = zarr.load('D:/Python/ADWA_RL/500000/weights_list.zarr')
 # large_array = np.random.rand(10000, 10000)
 
 # Save the NumPy array in an SQLite database
-conn = sqlite3.connect("weights_list_10000.db")
+conn = sqlite3.connect("weights_list_500000.db")
 c = conn.cursor()
 
 # Drop the old table if it exists
