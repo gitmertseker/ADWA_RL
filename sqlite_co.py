@@ -4,10 +4,10 @@ from tqdm import tqdm
 import zarr
 
 # Load a large NumPy array from a Zarr file
-costmap_list = zarr.load('D:/Python/ADWA_RL/500000/costmap_list.zarr')
+costmap_list = zarr.load('D:/Python/ADWA_RL/new_data/500/costmap_list.zarr')
 
 # Save the NumPy array in an SQLite database
-conn = sqlite3.connect("costmap_list_500000.db")
+conn = sqlite3.connect("costmap_list_500.db")
 c = conn.cursor()
 
 # Drop the old table if it exists

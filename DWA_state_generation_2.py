@@ -59,18 +59,18 @@ def states_generation(img,min_v,max_v,min_w,max_w):
     initial_states_list = []
     costmap_list = []
     # reward_list = []
-    weights_list = []
     delta_heading = 0.5
     delta_obstacle = 0.3
     delta_velocity = 0.3
     init_goal_range = 4
     # n_sets = 3000000
-    n_sets = 200000
+    # n_sets = 200000
     # n_sets = 100
     # n_sets = 1000000
     # n_sets = 100000
     # n_sets = 10000
     # n_sets = 500000
+    n_sets = 500
 
 
     # img = costmap.readImageMap(path,resize_constant=1/10)
@@ -153,27 +153,42 @@ def states_generation(img,min_v,max_v,min_w,max_w):
         # obstacles = costmap.find_obstacles(cm_init)
 
 
-        heading_cost_weight = round(random.uniform(heading_cost_weight_base - delta_heading, heading_cost_weight_base + delta_heading),2)
+        # heading_cost_weight = round(random.uniform(heading_cost_weight_base - delta_heading, heading_cost_weight_base + delta_heading),2)
 
-        obstacle_cost_weight = round(random.uniform(0, obstacle_cost_weight_base + delta_obstacle),3)
-        velocity_cost_weight = round(random.uniform(0, velocity_cost_weight_base + delta_velocity),3)
+        # obstacle_cost_weight = round(random.uniform(0, obstacle_cost_weight_base + delta_obstacle),3)
+        # velocity_cost_weight = round(random.uniform(0, velocity_cost_weight_base + delta_velocity),3)
 
 
         init_state = [init_x,init_y,init_theta,goal_x,goal_y,init_v,init_w]
-        weights = [heading_cost_weight, obstacle_cost_weight, velocity_cost_weight]
+        # weights = [heading_cost_weight, obstacle_cost_weight, velocity_cost_weight]
         initial_states_list.append(init_state)
-        weights_list.append(weights)
+        # weights_list.append(weights)
         costmap_list.append(cm_init)
         if i % 5000 == 0:
             print(i)
 
-    return costmap_list,initial_states_list,weights_list
+    return costmap_list,initial_states_list
+
+
+def weight_generation(dt=0.1):
+    weights_list = []
+    for i in range(2,14):
+        heading_cost_weight = i*dt
+        for q in range(0,6):
+            obstacle_cost_weight = q*dt
+            for z in range(0,5):
+                velocity_cost_weight = z*dt
+                weights = [heading_cost_weight, obstacle_cost_weight, velocity_cost_weight]
+                weights_list.append(weights)
+    return weights_list
+            
 
 
 path = '4training.png'
 resize_constant=1/10
 img = readImageMap(path,resize_constant)
-costmap_list,initial_states_list,weights_list = states_generation(img,min_v,max_v,min_w,max_w)
+costmap_list,initial_states_list = states_generation(img,min_v,max_v,min_w,max_w)
+weights_list = weight_generation()
 
 zarr.save('costmap_list.zarr', costmap_list)
 zarr.save('initial_states_list.zarr', initial_states_list)

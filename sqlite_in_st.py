@@ -4,11 +4,11 @@ from tqdm import tqdm
 import zarr
 
 # Create a large NumPy array
-initial_states_list = zarr.load('D:/Python/ADWA_RL/500000/initial_states_list.zarr')
+initial_states_list = zarr.load('D:/Python/ADWA_RL/new_data/500/initial_states_list.zarr')
 # large_array = np.random.rand(10000, 10000)
 
 # Save the NumPy array in an SQLite database
-conn = sqlite3.connect("initial_states_list_500000.db")
+conn = sqlite3.connect("initial_states_list_500.db")
 c = conn.cursor()
 
 # Drop the old table if it exists
